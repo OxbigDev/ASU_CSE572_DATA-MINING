@@ -1,6 +1,6 @@
 # ASU_CSE_PROJECT_TEMPLATE
 # ====
-# Project #
+# Project 1
 
 __author__ = "Mike.Salzarulo"
 
@@ -139,7 +139,6 @@ def main():
     output_df.to_csv("Results.csv", header=False, index_label=False, index=False)
 
     return
-
 
 if __name__ == "__main__":
     main()
