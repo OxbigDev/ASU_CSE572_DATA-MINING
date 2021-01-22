@@ -107,7 +107,7 @@ def preform_desired_mining(df):
     day_np = np.asarray(day_lst)
 
     # Here we divide by the number of days to get the average
-    return np.sum(day_np, axis=0) / day_np.shape[0]
+    return np.sum(day_np, axis=0) / day_np.shape[0] * 100
 
 def main():
     """
@@ -118,8 +118,7 @@ def main():
 
     # Define hueristic params
     files = ["InsulinData.csv",
-             "CGMData.csv",
-             "Results.csv"]
+             "CGMData.csv"]
     mode_change_trigger = 'AUTO MODE ACTIVE PLGM OFF'
 
     # Read in the dataframe concatenate date and time cols
@@ -132,15 +131,12 @@ def main():
     # Separate modes where the mode indexed at 0 is manual and the mode indexed at 1 is auto
     modes_dfs = [CGM_df.loc[CGM_df['Date_Time'] < manual_off_ts], CGM_df.loc[CGM_df['Date_Time'] >= manual_off_ts]]
 
-    # manual_mode_calcs = preform_desired_mining(manual_mode_df)
-    # auto_mode_calcs = preform_desired_mining(auto_mode_df)
+    calculations = []
+    for df in modes_dfs:
+        calculations.append(preform_desired_mining(df))
 
-    #todo: this is not needed can assign data from a1
-    output_df = pd.read_csv(files[2], index_col=0)
-    for i in range(output_df.shape[0]):
-        output_df.iloc[i] = preform_desired_mining(modes_dfs[i])
-
-    output_df.to_csv("test_output.csv")
+    output_df = pd.DataFrame(calculations)
+    output_df.to_csv("Results.csv", header=False, index_label=False, index=False)
 
     return
 
