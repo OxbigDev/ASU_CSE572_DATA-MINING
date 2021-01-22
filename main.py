@@ -8,62 +8,88 @@ import sklearn
 import pandas as pd
 
 def preform_desired_mining(df):
+    """
+    This function is designed to ingest a pandas dataframe and will calculate the following parameters based on three
+    predefined times of day:
 
+        a) Percentage time in hyperglycemia(CGM > 180 mg / dL),
+        b) percentage of time in hyperglycemia critical(CGM > 250 mg / dL),
+        c) percentage time in range(CGM >= 70 mg / dL and CGM <= 180 mg / dL),
+        d) percentage time in range secondary(CGM >= 70 mg / dL and CGM <= 150 mg / dL),
+        e) percentage time in hypoglycemia level 1(CGM < 70 mg / dL), and
+        f) percentage time in hypoglycemia level 2(CGM < 54 mg / dL).
+
+    :param df:
+
+    :return: list of parameters
+    """
+
+    # define function vars
     col_of_interest = 'Sensor Glucose (mg/dL)'
-    time_inverval = df['Time'].iloc[0] - df['Time'].iloc[1]
-    time_delta = df.shape[0] * time_inverval
-    time_of_day = []
+    # Time interval between collections
+    time_inverval = df['Date_Time'].iloc[0] - df['Date_Time'].iloc[1]
+    # this is the total time in the given mode
+    total_time = df.shape[0] * time_inverval
+    # This will cover all cases
+    time_of_day = 6
+    # empty list assignment to place calculated values
+    values = []
+    # create df to be overwritten each iteration
+    time_split_df = df.copy()
 
-    # todo: this aint it
-    #  This method will not include the times when the levels monitored fall out of hyper glycemia
-    #  I'll need to preform a sliding window operation to capture acurate time deltas
-    # # hyperglycemia > 180
-    # threshold = 180
-    # time_delta_hyperglycemia = df.loc[df[col_of_interest] > threshold]['Time'].max() - df.loc[df[col_of_interest] > threshold]['Time'].min()
-    #
-    # # hyperglycemia critical > 250
-    # threshold = 250
-    # time_delta_hyperglycemia = df.loc[df[col_of_interest] > threshold]['Time'].max() - df.loc[df[col_of_interest] > threshold]['Time'].min()
-    #
-    # # primary range 70:180
-    # low = 70
-    # high = 180
-    # time_delta_hyperglycemia = df.loc[df[col_of_interest] > low and df[col_of_interest] < high]['Time'].max() - df.loc[df[col_of_interest] > low and df[col_of_interest] < high]['Time'].min()
+    # Begin mining loop
+    # The first iteration of the loop does not to any time splitting so to capture 12 am to 12 am
+    for split in range(3):
+        # This will create a split for 6 AM to midnight given hour 23:59 is midnight
+        if split == 1:
+            time_split_df = df.loc[df.Date_Time.dt.hour >= time_of_day]
 
-    # todo: this needs to be done for three different times of day see line 15
-    # hyperglycemia > 180
-    threshold = 180
-    temp_df = df.loc[df[col_of_interest] > threshold]['Time']
-    tot_time_hyperglycemia = temp_df.shape[0] * time_inverval
+        # This will create a split for midnight to 6 AM given hour 24 is midnight represented by 0
+        if split == 2:
+            time_split_df = df.loc[df.Date_Time.dt.hour < time_of_day]
 
-    # hyperglycemia critical > 250
-    threshold = 250
-    temp_df = df.loc[df[col_of_interest] > threshold]['Time']
-    tot_time_hyperglycemia_crit = temp_df.shape[0] * time_inverval
+        # hyperglycemia > 180
+        threshold = 180
+        temp_df = time_split_df.loc[time_split_df[col_of_interest] > threshold]
+        tot_time_hyperglycemia = temp_df.shape[0] * time_inverval
+        values.append(tot_time_hyperglycemia)
 
-    # primary range 70:180
-    low = 70
-    high = 180
-    temp_df = df.loc[df[col_of_interest] >= low and df[col_of_interest] <= high]['Time']
-    tot_time_primaryrng = temp_df.shape[0] * time_inverval
+        # hyperglycemia critical > 250
+        threshold = 250
+        temp_df = time_split_df.loc[time_split_df[col_of_interest] > threshold]
+        tot_time_hyperglycemia_crit = temp_df.shape[0] * time_inverval
+        values.append(tot_time_hyperglycemia_crit)
 
-    # secondary range 70:150
-    low = 70
-    high = 150
-    temp_df = df.loc[df[col_of_interest] >= low and df[col_of_interest] <= high]['Time']
-    tot_time_secondaryrng = temp_df.shape[0] * time_inverval
+        # primary range 70:180
+        low = 70
+        high = 180
+        temp_df_highpass = time_split_df.loc[time_split_df[col_of_interest] >= low]
+        temp_df = temp_df_highpass.loc[temp_df_highpass[col_of_interest] <= high]
+        tot_time_primaryrng = temp_df.shape[0] * time_inverval
+        values.append(tot_time_primaryrng)
 
-    # hypoglycemia lv 1 70
-    threshold = 70
-    temp_df = df.loc[df[col_of_interest] < threshold]['Time']
-    tot_time_lv1 = temp_df.shape[0] * time_inverval
+        # secondary range 70:150
+        low = 70
+        high = 150
+        temp_df_highpass = time_split_df.loc[time_split_df[col_of_interest] >= low]
+        temp_df = temp_df_highpass.loc[temp_df_highpass[col_of_interest] <= high]
+        tot_time_secondaryrng = temp_df.shape[0] * time_inverval
+        values.append(tot_time_secondaryrng)
 
-    # hypoglycemia lv 2 54
-    threshold = 54
-    temp_df = df.loc[df[col_of_interest] < threshold]['Time']
-    tot_time_lv2 = temp_df.shape[0] * time_inverval
+        # hypoglycemia lv 1 70
+        threshold = 70
+        temp_df = time_split_df.loc[time_split_df[col_of_interest] < threshold]
+        tot_time_lv1 = temp_df.shape[0] * time_inverval
+        values.append(tot_time_lv1)
 
-    return df
+        # hypoglycemia lv 2 54
+        threshold = 54
+        temp_df = time_split_df.loc[time_split_df[col_of_interest] < threshold]
+        tot_time_lv2 = temp_df.shape[0] * time_inverval
+        values.append(tot_time_lv2)
+
+    # Here we divide time deltas to get a list of floats
+    return [x/total_time for x in values]
 
 def main():
     """
@@ -72,36 +98,31 @@ def main():
     :return:
     """
 
+    # Define hueristic params
     files = ["Project 1 Student Files/InsulinData.csv",
-             "Project 1 Student Files/CGMData.csv"]
+             "Project 1 Student Files/CGMData.csv",
+             "Project 1 Student Files/Results.csv"]
     mode_change_trigger = 'AUTO MODE ACTIVE PLGM OFF'
 
-    insulin_pump_df = pd.read_csv(files[0], parse_dates=['Date', 'Time'])
-    CGM_df = pd.read_csv(files[1], parse_dates=['Date', 'Time'])
+    # Read in the dataframe concatenate date and time cols
+    insulin_pump_df = pd.read_csv(files[0], parse_dates=[['Date', 'Time']])
+    CGM_df = pd.read_csv(files[1], parse_dates=[['Date', 'Time']])
 
-    # a) Percentage time in hyperglycemia(CGM > 180 mg / dL),
-    # total time> 180 mg / total recorded time
+    # Find the timestamp for when manual mode is turned off
+    manual_off_ts = insulin_pump_df.loc[insulin_pump_df['Alarm'] == mode_change_trigger]['Date_Time'].min()
 
-    # b) percentage of time in hyperglycemia critical(CGM > 250 mg / dL),
-    # total time > 250 / total record time
+    # Separate modes where the mode indexed at 0 is manual and the mode indexed at 1 is auto
+    modes_dfs = [CGM_df.loc[CGM_df['Date_Time'] < manual_off_ts], CGM_df.loc[CGM_df['Date_Time'] >= manual_off_ts]]
 
-    # c) percentage time in range(CGM >= 70 mg / dL and CGM <= 180 mg / dL),
-    # d) percentage time in range secondary(CGM >= 70 mg / dL and CGM <= 150 mg / dL),
-    # e) percentage time in hypoglycemia level 1(CGM < 70 mg / dL), and
-    # f) percentage time in hypoglycemia level 2(CGM < 54 mg / dL).
+    # manual_mode_calcs = preform_desired_mining(manual_mode_df)
+    # auto_mode_calcs = preform_desired_mining(auto_mode_df)
 
-    # 18 to be extracted for two modes hence 2x18 matrix
+    #todo: read in and update results.csv template
+    output_df = pd.read_csv(files[2], index_col=0)
+    for i in range(output_df.shape[0]):
+        output_df.iloc[i] = preform_desired_mining(modes_dfs[i])
 
-    # figure out where the modes split
-    # it's in column Q of insulin pump df
-    manual_off_ts = insulin_pump_df.loc[insulin_pump_df['Alarm'] == mode_change_trigger]['Time'].min()
-
-    # todo: need to double check this produced the correct results
-    manual_mode_df = CGM_df.loc[CGM_df['Time'] < manual_off_ts]
-    auto_mode_df = CGM_df.loc[CGM_df['Time'] >= manual_off_ts]
-
-    preform_desired_mining(manual_mode_df)
-
+    output_df.to_csv("test_output.csv")
 
     return
 
