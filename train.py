@@ -107,71 +107,57 @@ def main():
     meal_data = [pd.to_numeric(x[col_of_interest]).values for x in meal_data]
     [print(f" expected 30 got :{len(x)}") for x in meal_data if len(x) != 30]
 
-    train(no_meal_data, meal_data)
+    # filter out incomplete data
+    no_meal = [x for x in no_meal_data if len(x) == 24 and True not in np.isnan(x)]
+    # no_meal = [np.pad(x, (0,6), "constant", constant_values=0) for x in no_meal]
+
+    meal = [x[6:] for x in meal_data if len(x) == 30 and True not in np.isnan(x)]
+
+    train(no_meal, meal)
 
     return
 
 def train(no_meal, meal):
 
-    # filter out incomplete data
-    no_meal = [x for x in no_meal if len(x) == 24 and True not in np.isnan(x)]
-    no_meal = [np.pad(x, (0,6), "constant", constant_values=0) for x in no_meal]
-    meal = [x for x in meal if len(x) == 30 and True not in np.isnan(x)]
-
     # pack data
     training_data = no_meal + meal
 
     # create label vector
-    labels = [0 for x in range(len(no_meal))] + [1 for x in range(len(meal))]
+    labels_train = [0 for x in range(len(no_meal))] + [1 for x in range(len(meal))]
 
     # Form data splits
     kf = KFold(n_splits=8, shuffle=True)
-    training_data, testing_data, labels_train, labels_test = train_test_split(training_data,labels,test_size=.1)
+
+    # # output test data
+    # training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
+    # pd.DataFrame(testing_data, index=None).to_csv("test.csv", header=False, index=False, index_label=False)
 
     # define vars
     models = []
     i=0
     training_data = np.asarray(training_data)
     labels_train = np.asarray(labels_train)
-    labels_test = np.asarray(labels_test)
 
     # begin training
     for train_i, test_i in kf.split(training_data):
         train = training_data[train_i], labels_train[train_i]
         test = training_data[test_i], labels_train[test_i]
 
-        clf = MLPClassifier((8, 3))
+        clf = MLPClassifier((100,50))
         clf.fit(train[0], train[1])
         score = clf.score(test[0], test[1])
         print(f"Model {i} validation acc {score}")
-        models.append(clf)
+        models.append((clf, score))
 
         i+=1
 
-    # test on each of the models
-    i = 0
-    scores = []
     fn = "Trained_model.pkl"
-    for model in models:
-
-        score = model.score(testing_data, labels_test)
-        print(f"Model {i} testing acc {score}")
-        i = +1
-
-        if score == 1.0:
-            print(f"Training has saturated saving model")
-            with open(fn, "wb") as fp:
-                pickle.dump(model.get_params(), fp, protocol=3)
-            return
-
-    # Continue Until a 1 is scored
-    train(no_meal, meal)
-
+    models = sorted(models, key=lambda x: x[1])
+    model = models[-1][0]
+    print(f"Training has saturated saving model")
+    with open(fn, "wb") as fp:
+        pickle.dump(model.get_params(), fp, protocol=3)
     return
-
-
-# expecting 231 rows in 1 col
-
 
 if __name__ == "__main__":
     main()

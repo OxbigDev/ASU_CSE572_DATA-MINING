@@ -4,12 +4,28 @@
 
 __author__ = "Mike.Salzarulo"
 
-FILES = ["CGMData.csv",
-         "CGM_patient2.csv",
-         "InsulinData.csv",
-         "Insulin_patient2.csv"]
+FILES = ["test.csv",
+         'Trained_model.pkl',
+         'results.csv']
+
+import pandas as pd
+import pickle
+from sklearn.neural_network import MLPClassifier
 
 def main():
+
+    data = pd.read_csv(FILES[0]).values
+
+    with open(FILES[1], "rb") as fp:
+        model_params = pickle.load(fp)
+
+    model = MLPClassifier()
+    model.set_params(model_params)
+
+    predictions = model.predict(data)
+
+    pd.DataFrame(predictions, index=None, columns=None).to_csv(FILES[2])
+
     return
 
 
