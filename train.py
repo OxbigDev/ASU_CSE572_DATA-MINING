@@ -113,6 +113,8 @@ def main():
 
     meal = [x[6:] for x in meal_data if len(x) == 30 and True not in np.isnan(x)]
 
+    no_meal, meal =feature_extraction(no_meal, meal)
+
     train(no_meal, meal)
 
     return
@@ -129,8 +131,9 @@ def train(no_meal, meal):
     kf = KFold(n_splits=8, shuffle=True)
 
     # # output test data
-    # training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
-    # pd.DataFrame(testing_data, index=None).to_csv("test.csv", header=False, index=False, index_label=False)
+    training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
+    pd.DataFrame(testing_data, index=None).to_csv("test.csv", header=False, index=False, index_label=False)
+    pd.DataFrame(labels_test, index=None).to_csv("test_truth.csv", header=False, index=False, index_label=False)
 
     # define vars
     models = []
@@ -143,21 +146,40 @@ def train(no_meal, meal):
         train = training_data[train_i], labels_train[train_i]
         test = training_data[test_i], labels_train[test_i]
 
-        clf = MLPClassifier((100,50))
+        clf = MLPClassifier((16, 3), solver="sgd", activation="logistic", verbose=True, shuffle=True, max_iter=1000, early_stopping=True)
         clf.fit(train[0], train[1])
         score = clf.score(test[0], test[1])
         print(f"Model {i} validation acc {score}")
-        models.append((clf, score))
+        clf = MLPClassifier(warm_start=True)
+        trained_model = clf.fit(test[0], test[1])
+        models.append((trained_model, score))
 
         i+=1
 
     fn = "Trained_model.pkl"
     models = sorted(models, key=lambda x: x[1])
     model = models[-1][0]
-    print(f"Training has saturated saving model")
+    print(f"Training has saturated saving model max acc: {models[-1][1]}")
     with open(fn, "wb") as fp:
-        pickle.dump(model.get_params(), fp, protocol=3)
+        pickle.dump(model, fp, protocol=3)
     return
+
+def feature_extraction(no_meal, meal):
+
+    data = [no_meal, meal]
+
+    for j, set in enumerate(data):
+        for i, sample in enumerate(set):
+            mean = np.mean(sample)
+            std = np.std(sample)
+            fft = np.fft.fft(sample)
+            real = np.real(fft)
+            angle = np.angle(fft)
+            set[i] = np.append(set[i], (mean, std, *real, *angle))
+
+        data[j] = set
+
+    return data
 
 if __name__ == "__main__":
     main()

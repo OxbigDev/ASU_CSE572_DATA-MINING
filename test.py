@@ -14,17 +14,14 @@ from sklearn.neural_network import MLPClassifier
 
 def main():
 
-    data = pd.read_csv(FILES[0]).values
+    data = pd.read_csv(FILES[0], header=None).values
 
     with open(FILES[1], "rb") as fp:
-        model_params = pickle.load(fp)
-
-    model = MLPClassifier()
-    model.set_params(model_params)
+        model = pickle.load(fp)
 
     predictions = model.predict(data)
 
-    pd.DataFrame(predictions, index=None, columns=None).to_csv(FILES[2])
+    pd.DataFrame(predictions, index=None, columns=None).to_csv(FILES[2], header=False, index=False, index_label=False)
 
     return
 
