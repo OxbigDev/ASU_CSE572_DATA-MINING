@@ -6,7 +6,7 @@ __author__ = "Mike.Salzarulo"
 
 FILES = ["test.csv",
          'Trained_model.pkl',
-         'results.csv']
+         'Results.csv']
 
 import pandas as pd
 import pickle
