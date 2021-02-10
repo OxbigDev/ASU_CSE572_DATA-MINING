@@ -6,7 +6,7 @@ __author__ = "Mike.Salzarulo"
 
 FILES = ["test.csv",
          'Trained_model.pkl',
-         'Results.csv']
+         'Result.csv']
 
 import pandas as pd
 import pickle
@@ -35,7 +35,9 @@ def feature_extraction(data):
         fft = np.fft.fft(sample)
         real = np.real(fft)
         angle = np.angle(fft)
-        samples.append(np.append(sample, (mean, std, *real, *angle)))
+        dsample = np.gradient(sample)
+        d2sample = np.gradient(sample, edge_order=2)
+        samples.append(np.append(sample, (mean, std, *real, *angle, *dsample, *d2sample)))
 
     data = np.asarray(samples)
 

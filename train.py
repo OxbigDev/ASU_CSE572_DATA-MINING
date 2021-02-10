@@ -146,7 +146,7 @@ def train(no_meal, meal):
         test = training_data[test_i], labels_train[test_i]
 
         # define MLP
-        clf = MLPClassifier(hidden_layer_sizes=(8, 3), solver="sgd", activation="logistic", verbose=True, shuffle=True, max_iter=1000, early_stopping=True)
+        clf = MLPClassifier(hidden_layer_sizes=(8, 3), solver="sgd", activation="logistic", verbose=True, shuffle=True, max_iter=1000, early_stopping=True, tol=1e-12)
         # train
         clf.fit(train[0], train[1])
         # score with validation split
@@ -180,7 +180,9 @@ def feature_extraction(no_meal, meal):
             fft = np.fft.fft(sample)
             real = np.real(fft)
             angle = np.angle(fft)
-            set[i] = np.append(set[i], (mean, std, *real, *angle))
+            dsample = np.gradient(sample)
+            d2sample = np.gradient(sample, edge_order=2)
+            set[i] = np.append(set[i], (mean, std, *real, *angle, *dsample, *d2sample))
 
         data[j] = set
 
