@@ -9,8 +9,12 @@ FILES = ["Results.csv",
 
 import pandas as pd
 import pickle
+import train,test
 
 from sklearn.neural_network import MLPClassifier
+
+train.main()
+test.main()
 
 results = pd.read_csv(FILES[0], header=None).values
 labels = pd.read_csv(FILES[1], header=None).values

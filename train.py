@@ -109,11 +109,9 @@ def main():
 
     # filter out incomplete data
     no_meal = [x for x in no_meal_data if len(x) == 24 and True not in np.isnan(x)]
-    # no_meal = [np.pad(x, (0,6), "constant", constant_values=0) for x in no_meal]
-
     meal = [x[6:] for x in meal_data if len(x) == 30 and True not in np.isnan(x)]
 
-    no_meal, meal =feature_extraction(no_meal, meal)
+    no_meal, meal = feature_extraction(no_meal, meal)
 
     train(no_meal, meal)
 
@@ -128,7 +126,7 @@ def train(no_meal, meal):
     labels_train = [0 for x in range(len(no_meal))] + [1 for x in range(len(meal))]
 
     # Form data splits
-    kf = KFold(n_splits=8, shuffle=True)
+    kf = KFold(n_splits=13, shuffle=True)
 
     # # output test data
     # training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
@@ -143,19 +141,26 @@ def train(no_meal, meal):
 
     # begin training
     for train_i, test_i in kf.split(training_data):
+        # split data
         train = training_data[train_i], labels_train[train_i]
         test = training_data[test_i], labels_train[test_i]
 
-        clf = MLPClassifier((16, 3), solver="sgd", activation="logistic", verbose=True, shuffle=True, max_iter=1000, early_stopping=True)
+        # define MLP
+        clf = MLPClassifier(hidden_layer_sizes=(8, 3), solver="sgd", activation="logistic", verbose=True, shuffle=True, max_iter=1000, early_stopping=True)
+        # train
         clf.fit(train[0], train[1])
+        # score with validation split
         score = clf.score(test[0], test[1])
         print(f"Model {i} validation acc {score}")
+        # Continue to train model with validation data
         clf = MLPClassifier(warm_start=True)
         trained_model = clf.fit(test[0], test[1])
+        # store model and score in list
         models.append((trained_model, score))
 
         i+=1
 
+    # Save the highest scoring model
     fn = "Trained_model.pkl"
     models = sorted(models, key=lambda x: x[1])
     model = models[-1][0]
