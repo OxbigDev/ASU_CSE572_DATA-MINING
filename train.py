@@ -131,9 +131,9 @@ def train(no_meal, meal):
     kf = KFold(n_splits=8, shuffle=True)
 
     # # output test data
-    training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
-    pd.DataFrame(testing_data, index=None).to_csv("test.csv", header=False, index=False, index_label=False)
-    pd.DataFrame(labels_test, index=None).to_csv("test_truth.csv", header=False, index=False, index_label=False)
+    # training_data, testing_data, labels_train, labels_test = train_test_split(training_data, labels_train, test_size=.1)
+    # pd.DataFrame(testing_data, index=None).to_csv("test.csv", header=False, index=False, index_label=False)
+    # pd.DataFrame(labels_test, index=None).to_csv("test_truth.csv", header=False, index=False, index_label=False)
 
     # define vars
     models = []
