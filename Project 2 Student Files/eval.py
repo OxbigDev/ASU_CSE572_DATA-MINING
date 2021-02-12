@@ -11,8 +11,6 @@ import pandas as pd
 import pickle
 import train,test
 
-from sklearn.neural_network import MLPClassifier
-
 train.main()
 test.main()
 
