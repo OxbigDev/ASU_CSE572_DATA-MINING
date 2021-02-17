@@ -6,8 +6,9 @@ import pandas as pd
 import sklearn
 import pickle
 
-from sklearn.neural_network import MLPClassifier
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 import numpy as np
 
 __author__ = "msalzarulo"
@@ -43,7 +44,7 @@ def main():
 
     # iterate over the relevent timestamps to get meal times
     for _, series in all_t[::-1].iterrows():
-        y_val = series[meal_ticker]
+        y_val = int(series[meal_ticker])
         carb_intake_list.append(y_val) if y_val > 0 else None
         tm = series.Date_Time
 
@@ -69,6 +70,25 @@ def main():
         tp = tm
     # this assumes the final tm fits meal data tm+2hrs
     tm_list.append(tm)
+
+    # build cluster labels
+    carb_intake_list.sort(key=lambda x: int(x))
+    labels = {}
+    count = 1
+    high_carb = carb_intake_list[0]+20
+    label_name = "A" * count
+    for carb in carb_intake_list:
+        if carb < high_carb:
+            if label_name in labels:
+                labels[label_name].append(carb)
+            else:
+                labels[label_name] = [carb]
+        else:
+            count += 1
+            high_carb += 20 if high_carb < 100 else 1000
+            label_name = "A" * count
+            labels[label_name] = [carb]
+
 
     meal_window = pd.to_timedelta(2.5, "hours")
     no_meal_window = pd.to_timedelta(2, "hours")
@@ -114,11 +134,17 @@ def main():
     meal_max = np.max(meal)
     meal_min = np.min(meal)
 
-    n = (meal_max - meal_min) / 20
-
-    # take meal data
-    # divide into bins
-    # each bin has a label
     # run k means on meal data
+    kmeans_model = KMeans(n_clusters=6)
+    kmeans_model = kmeans_model.fit(meal)
+
+    # run DBSCAN on meal data
+    dbscan_model = DBSCAN()
+    dbscan_model.fit(meal)
 
     return
+
+
+if __name__ == '__main__':
+    main()
+
