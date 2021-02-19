@@ -10,6 +10,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+import math
 
 __author__ = "msalzarulo"
 
@@ -134,7 +135,8 @@ def main():
     cluster_means = np.mean(kmeans_model.cluster_centers_, axis=1)
 
     # claculate sse
-    sse(meal.tolist(), kmeans_model.cluster_centers_, ky)
+    kmeans_sse = sse(meal.tolist(), kmeans_model.cluster_centers_, ky)
+    kmeans_entropy = entropy(confusion_matrix)
 
 
     return
@@ -149,17 +151,32 @@ def build_confusion_matrix(ky, meal_truth_label):
     return p_labels
 
 def sse(cluster, mean, label):
-    sse_per_cluster = np.zeros((1, len(mean)+1))
+    sse_per_cluster = np.zeros((len(mean)))
 
     for x,y in zip(cluster, label):
-        sse_per_cluster[y] += (x-mean[y])**2
+        sse_per_cluster[y] += sum((x-mean[y])**2)
     return sum(sse_per_cluster)
 
 def purity():
     return purity
 
-def entropy():
-    return entropy
+def entropy(confusion_mat):
+
+    # conf mat
+    # 1 2 3 6
+    # 4 5 6 15
+    # 5 7 9 21
+    # entropy
+    # - 1/6log2(1/6) + 2/6log2(2/6)
+
+    totals = np.sum(confusion_mat, axis=1)
+    per_cluster_entropy = np.zeros((confusion_mat.shape[0]))
+
+    for ind, cluster in enumerate(confusion_mat):
+        scalors = cluster / totals[ind]
+        per_cluster_entropy[ind] = sum([x*math.log(x, 2) for x in scalors if x != 0]) * -1
+
+    return np.sum(per_cluster_entropy)
 
 
 if __name__ == '__main__':
