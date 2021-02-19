@@ -8,7 +8,7 @@ import pickle
 
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
 import numpy as np
 import math
 
@@ -125,18 +125,30 @@ def main():
     kmeans_model = kmeans_model.fit(meal.tolist())
     ky = kmeans_model.labels_
 
-    # run DBSCAN on meal data
-    dbscan_model = DBSCAN()
-    dbscan_model.fit(meal.tolist())
-    dby = dbscan_model.labels_
-
-    # create confusion matrix
-    confusion_matrix = build_confusion_matrix(ky, meal_truth_label)
-    cluster_means = np.mean(kmeans_model.cluster_centers_, axis=1)
+    # create confusion matrix for kmeans
+    conf_mat = build_confusion_matrix(ky, meal_truth_label)
 
     # claculate sse
     kmeans_sse = sse(meal.tolist(), kmeans_model.cluster_centers_, ky)
-    kmeans_entropy = entropy(confusion_matrix)
+    kmeans_entropy = entropy(conf_mat)
+    kmeans_purity = purity(conf_mat)
+
+    # run DBSCAN on meal data
+    dbscan_model = DBSCAN(eps=100, min_samples=3)
+    dbscan_model.fit(meal.tolist())
+    dby = dbscan_model.labels_
+
+    # create confusion matrix for dbscan
+    conf_mat = confusion_matrix(dby, meal_truth_label.astype(np.uint8))
+
+    # claculate sse
+    dbscan_sse = sse(meal.tolist(), dbscan_model.components_, dby)
+    dbscan_entropy = entropy(conf_mat)
+    dbscan_purity = purity(conf_mat)
+
+    # output vector
+    output_vector = np.expand_dims(np.asarray([kmeans_sse, dbscan_sse, kmeans_entropy, dbscan_entropy, kmeans_purity, dbscan_purity]),0)
+    pd.DataFrame(output_vector, index=None, columns=None).to_csv(FILES[-1], header=False, index=False, index_label=False)
 
 
     return
@@ -157,8 +169,11 @@ def sse(cluster, mean, label):
         sse_per_cluster[y] += sum((x-mean[y])**2)
     return sum(sse_per_cluster)
 
-def purity():
-    return purity
+def purity(confustion_mat):
+
+    max_per_row = np.max(confustion_mat, axis=1)
+
+    return np.sum(max_per_row)/np.sum(confustion_mat)
 
 def entropy(confusion_mat):
 
@@ -170,13 +185,15 @@ def entropy(confusion_mat):
     # - 1/6log2(1/6) + 2/6log2(2/6)
 
     totals = np.sum(confusion_mat, axis=1)
-    per_cluster_entropy = np.zeros((confusion_mat.shape[0]))
+    sum_totals = np.sum(totals)
+    entropy_term = np.zeros((confusion_mat.shape[0]))
 
     for ind, cluster in enumerate(confusion_mat):
         scalors = cluster / totals[ind]
-        per_cluster_entropy[ind] = sum([x*math.log(x, 2) for x in scalors if x != 0]) * -1
+        per_cluster_entropy = sum([x*math.log(x, 2) for x in scalors if x != 0]) * -1
+        entropy_term[ind] = totals[ind]/sum_totals * per_cluster_entropy
 
-    return np.sum(per_cluster_entropy)
+    return np.sum(entropy_term)
 
 
 if __name__ == '__main__':
