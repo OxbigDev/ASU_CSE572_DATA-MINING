@@ -130,23 +130,30 @@ def main():
     dby = dbscan_model.labels_
 
     # create confusion matrix
-    confusion_matrix = build_confusion_matrix(ky, meal_truth_label, labels)
+    confusion_matrix = build_confusion_matrix(ky, meal_truth_label)
     cluster_means = np.mean(kmeans_model.cluster_centers_, axis=1)
 
-    [sse(x, y) for x, y in zip(confusion_matrix, cluster_means)]
+    # claculate sse
+    sse(meal.tolist(), kmeans_model.cluster_centers_, ky)
+
 
     return
 
 def build_confusion_matrix(ky, meal_truth_label):
+    meal_truth_label = meal_truth_label.astype(np.uint8)
     p_labels = np.zeros((ky.max()+1, meal_truth_label.max()+1))
 
-    for y, truth in zip(ky, meal_truth_label.astype(np.uint8)):
+    for y, truth in zip(ky, meal_truth_label):
         p_labels[y, truth] += 1
 
     return p_labels
 
-def sse(cluster, mean):
-    return sum(map(lambda x: (x-mean)**2, cluster))
+def sse(cluster, mean, label):
+    sse_per_cluster = np.zeros((1, len(mean)+1))
+
+    for x,y in zip(cluster, label):
+        sse_per_cluster[y] += (x-mean[y])**2
+    return sum(sse_per_cluster)
 
 def purity():
     return purity
