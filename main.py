@@ -16,7 +16,7 @@ __author__ = "msalzarulo"
 
 FILES = ["CGMData.csv",
          "InsulinData.csv",
-         "Results.csv"]
+         "Result.csv"]
 
 def main():
 
